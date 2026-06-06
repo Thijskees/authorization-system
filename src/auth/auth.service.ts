@@ -99,3 +99,15 @@ export const getUserFromToken = async (token: string) => {
   const user = await repo.findUserById(userId);
   return user ? toPublicUser(user) : undefined;
 };
+
+export const listUsers = async () => {
+  const repo = await getRepository();
+  const users = await repo.listUsers();
+  return users.map(toPublicUser);
+};
+
+export const getUserById = async (id: string) => {
+  const repo = await getRepository();
+  const user = await repo.findUserById(id);
+  return user ? toPublicUser(user) : undefined;
+};

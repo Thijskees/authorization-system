@@ -17,6 +17,9 @@ export const createMemoryRepository = async (): Promise<AuthRepository> => {
     async findUserById(id: string) {
       return usersById.get(id);
     },
+    async listUsers() {
+      return Array.from(usersById.values());
+    },
     async createSession(token: string, userId: string) {
       sessionsByToken.set(token, userId);
     },

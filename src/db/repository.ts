@@ -4,6 +4,7 @@ export type AuthRepository = {
   createUser(user: StoredUser): Promise<void>;
   findUserByEmail(email: string): Promise<StoredUser | undefined>;
   findUserById(id: string): Promise<StoredUser | undefined>;
+  listUsers(): Promise<StoredUser[]>;
   createSession(token: string, userId: string): Promise<void>;
   findUserIdByToken(token: string): Promise<string | undefined>;
 };

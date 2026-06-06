@@ -34,6 +34,11 @@ export const createMongoRepository = async (): Promise<AuthRepository> => {
       const doc = await collection.findOne({ id });
       return doc ?? undefined;
     },
+    async listUsers() {
+      const collection = requireDb().collection<StoredUser>('users');
+      const docs = await collection.find().toArray();
+      return docs ?? [];
+    },
     async createSession(token: string, userId: string) {
       const collection = requireDb().collection('sessions');
       await collection.insertOne({ token, userId });
