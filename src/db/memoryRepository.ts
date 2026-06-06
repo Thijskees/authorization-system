@@ -1,5 +1,6 @@
 import type { AuthRepository } from './repository';
 import type { StoredUser } from '../auth/auth.types';
+import type { Permission } from '../models/permission.types';
 import type { Role } from '../models/role.types';
 
 export const createMemoryRepository = async (): Promise<AuthRepository> => {
@@ -7,6 +8,8 @@ export const createMemoryRepository = async (): Promise<AuthRepository> => {
   const usersByEmail = new Map<string, StoredUser>();
   const sessionsByToken = new Map<string, string>();
   const rolesById = new Map<string, Role>();
+  const permissionsById = new Map<string, Permission>();
+  const permissionsByCode = new Map<string, Permission>();
 
   return {
     async createUser(user: StoredUser) {
@@ -39,6 +42,19 @@ export const createMemoryRepository = async (): Promise<AuthRepository> => {
     },
     async updateRole(role: Role) {
       rolesById.set(role.id, role);
+    },
+    async createPermission(permission: Permission) {
+      permissionsById.set(permission.id, permission);
+      permissionsByCode.set(permission.code, permission);
+    },
+    async findPermissionById(id: string) {
+      return permissionsById.get(id);
+    },
+    async findPermissionByCode(code: string) {
+      return permissionsByCode.get(code);
+    },
+    async listPermissions() {
+      return Array.from(permissionsById.values());
     },
   };
 };

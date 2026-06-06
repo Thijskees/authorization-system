@@ -16,6 +16,16 @@ export const createRoleSchema = z.object({
   permissions: z.array(z.string()).optional(),
 });
 
+export const permissionCodeSchema = z.object({
+  permission: z.string().min(1),
+});
+
+export const createPermissionSchema = z.object({
+  code: z.string().min(1),
+  description: z.string().min(1).optional(),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateRoleInput = z.infer<typeof createRoleSchema>;
+export type CreatePermissionInput = z.infer<typeof createPermissionSchema>;

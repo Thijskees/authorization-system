@@ -1,6 +1,7 @@
 import { MongoClient, Db } from 'mongodb';
 import type { AuthRepository } from './repository';
 import type { StoredUser } from '../auth/auth.types';
+import type { Permission } from '../models/permission.types';
 import type { Role } from '../models/role.types';
 
 let db: Db | undefined;
@@ -13,6 +14,7 @@ export const initMongo = async (uri: string, dbName = 'authorization') => {
   await db.collection('users').createIndex({ email: 1 }, { unique: true });
   await db.collection('sessions').createIndex({ token: 1 }, { unique: true });
   await db.collection('roles').createIndex({ name: 1 }, { unique: true });
+  await db.collection('permissions').createIndex({ code: 1 }, { unique: true });
 };
 
 const requireDb = (): Db => {
@@ -66,6 +68,24 @@ export const createMongoRepository = async (): Promise<AuthRepository> => {
     async updateRole(role: Role) {
       const collection = requireDb().collection<Role>('roles');
       await collection.replaceOne({ id: role.id }, role, { upsert: true });
+    },
+    async createPermission(permission: Permission) {
+      const collection = requireDb().collection<Permission>('permissions');
+      await collection.insertOne(permission as any);
+    },
+    async findPermissionById(id: string) {
+      const collection = requireDb().collection<Permission>('permissions');
+      const doc = await collection.findOne({ id });
+      return doc ?? undefined;
+    },
+    async findPermissionByCode(code: string) {
+      const collection = requireDb().collection<Permission>('permissions');
+      const doc = await collection.findOne({ code });
+      return doc ?? undefined;
+    },
+    async listPermissions() {
+      const collection = requireDb().collection<Permission>('permissions');
+      return collection.find().toArray();
     },
   };
 };

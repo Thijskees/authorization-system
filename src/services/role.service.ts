@@ -26,6 +26,8 @@ export const getRoleById = async (id: string): Promise<Role | undefined> => {
 
 export const addPermissionToRole = async (id: string, permission: string): Promise<Role | undefined> => {
   const repo = await getRepository();
+  const permissionRecord = await repo.findPermissionByCode(permission);
+  if (!permissionRecord) return undefined;
   const role = await repo.findRoleById(id);
   if (!role) return undefined;
   if (!role.permissions.includes(permission)) role.permissions.push(permission);
