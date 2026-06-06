@@ -27,7 +27,7 @@ const toPublicUser = (user: StoredUser): PublicUser => ({
 
 let repositoryPromise: Promise<AuthRepository> | undefined;
 
-const getRepository = async (): Promise<AuthRepository> => {
+export const getRepository = async (): Promise<AuthRepository> => {
   if (repositoryPromise) return repositoryPromise;
 
   const driver = (env.DB_DRIVER || 'mongo').toLowerCase();

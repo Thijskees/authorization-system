@@ -1,6 +1,7 @@
 import { MongoClient, Db } from 'mongodb';
 import type { AuthRepository } from './repository';
 import type { StoredUser } from '../auth/auth.types';
+import type { Role } from '../models/role.types';
 
 let db: Db | undefined;
 
@@ -11,6 +12,7 @@ export const initMongo = async (uri: string, dbName = 'authorization') => {
   db = client.db(dbName);
   await db.collection('users').createIndex({ email: 1 }, { unique: true });
   await db.collection('sessions').createIndex({ token: 1 }, { unique: true });
+  await db.collection('roles').createIndex({ name: 1 }, { unique: true });
 };
 
 const requireDb = (): Db => {
@@ -47,6 +49,23 @@ export const createMongoRepository = async (): Promise<AuthRepository> => {
       const collection = requireDb().collection<{ token: string; userId: string }>('sessions');
       const doc = await collection.findOne({ token });
       return doc?.userId;
+    },
+    async createRole(role: Role) {
+      const collection = requireDb().collection<Role>('roles');
+      await collection.insertOne(role as any);
+    },
+    async findRoleById(id: string) {
+      const collection = requireDb().collection<Role>('roles');
+      const doc = await collection.findOne({ id });
+      return doc ?? undefined;
+    },
+    async listRoles() {
+      const collection = requireDb().collection<Role>('roles');
+      return collection.find().toArray();
+    },
+    async updateRole(role: Role) {
+      const collection = requireDb().collection<Role>('roles');
+      await collection.replaceOne({ id: role.id }, role, { upsert: true });
     },
   };
 };
