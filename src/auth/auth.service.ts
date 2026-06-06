@@ -30,7 +30,7 @@ let repositoryPromise: Promise<AuthRepository> | undefined;
 const getRepository = async (): Promise<AuthRepository> => {
   if (repositoryPromise) return repositoryPromise;
 
-  const driver = (env.DB_DRIVER || 'memory').toLowerCase();
+  const driver = (env.DB_DRIVER || 'mongo').toLowerCase();
 
   if (driver === 'mongo') {
     const uri = env.MONGO_URI;
