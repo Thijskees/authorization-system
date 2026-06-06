@@ -13,7 +13,7 @@ export type AuthedRequest = Request & {
   };
 };
 
-export const requireAuth = (req: AuthedRequest, res: Response, next: NextFunction) => {
+export const requireAuth = async (req: AuthedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith(bearerPrefix)) {
@@ -22,7 +22,7 @@ export const requireAuth = (req: AuthedRequest, res: Response, next: NextFunctio
   }
 
   const token = authHeader.slice(bearerPrefix.length).trim();
-  const user = getUserFromToken(token);
+  const user = await getUserFromToken(token);
 
   if (!user) {
     res.status(401).json({ error: 'Invalid or expired token' });

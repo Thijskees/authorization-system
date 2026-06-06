@@ -1,15 +1,16 @@
 import { createHash, randomBytes, randomUUID } from 'crypto';
+import { env } from 'process';
 
 import type { LoginInput, PublicUser, RegisterInput, StoredUser } from './auth.types';
+import { createMemoryRepository } from '../db/memoryRepository';
+import { createMongoRepository, initMongo } from '../db/mongoRepository';
+
+import type { AuthRepository } from '../db/repository';
 
 type AuthResult = {
   token: string;
   user: PublicUser;
 };
-
-const usersById = new Map<string, StoredUser>();
-const usersByEmail = new Map<string, StoredUser>();
-const sessionsByToken = new Map<string, string>();
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -24,12 +25,31 @@ const toPublicUser = (user: StoredUser): PublicUser => ({
   createdAt: user.createdAt,
 });
 
-export const registerUser = ({ email, password, name }: RegisterInput): AuthResult => {
+let repositoryPromise: Promise<AuthRepository> | undefined;
+
+const getRepository = async (): Promise<AuthRepository> => {
+  if (repositoryPromise) return repositoryPromise;
+
+  const driver = (env.DB_DRIVER || 'memory').toLowerCase();
+
+  if (driver === 'mongo') {
+    const uri = env.MONGO_URI;
+    if (!uri) throw new Error('MONGO_URI is required for mongo driver');
+    await initMongo(uri);
+    repositoryPromise = createMongoRepository();
+  } else {
+    repositoryPromise = createMemoryRepository();
+  }
+
+  return repositoryPromise;
+};
+
+export const registerUser = async ({ email, password, name }: RegisterInput): Promise<AuthResult> => {
+  const repo = await getRepository();
   const normalizedEmail = normalizeEmail(email);
 
-  if (usersByEmail.has(normalizedEmail)) {
-    throw new Error('A user with that email already exists');
-  }
+  const existing = await repo.findUserByEmail(normalizedEmail);
+  if (existing) throw new Error('A user with that email already exists');
 
   const salt = randomBytes(16).toString('hex');
   const user: StoredUser = {
@@ -43,9 +63,8 @@ export const registerUser = ({ email, password, name }: RegisterInput): AuthResu
 
   const token = randomUUID();
 
-  usersById.set(user.id, user);
-  usersByEmail.set(user.email, user);
-  sessionsByToken.set(token, user.id);
+  await repo.createUser(user);
+  await repo.createSession(token, user.id);
 
   return {
     token,
@@ -53,22 +72,19 @@ export const registerUser = ({ email, password, name }: RegisterInput): AuthResu
   };
 };
 
-export const loginUser = ({ email, password }: LoginInput): AuthResult => {
+export const loginUser = async ({ email, password }: LoginInput): Promise<AuthResult> => {
+  const repo = await getRepository();
   const normalizedEmail = normalizeEmail(email);
-  const user = usersByEmail.get(normalizedEmail);
+  const user = await repo.findUserByEmail(normalizedEmail);
 
-  if (!user) {
-    throw new Error('Invalid email or password');
-  }
+  if (!user) throw new Error('Invalid email or password');
 
   const passwordHash = hashPassword(password, user.passwordSalt);
 
-  if (passwordHash !== user.passwordHash) {
-    throw new Error('Invalid email or password');
-  }
+  if (passwordHash !== user.passwordHash) throw new Error('Invalid email or password');
 
   const token = randomUUID();
-  sessionsByToken.set(token, user.id);
+  await repo.createSession(token, user.id);
 
   return {
     token,
@@ -76,14 +92,10 @@ export const loginUser = ({ email, password }: LoginInput): AuthResult => {
   };
 };
 
-export const getUserFromToken = (token: string) => {
-  const userId = sessionsByToken.get(token);
-
-  if (!userId) {
-    return undefined;
-  }
-
-  const user = usersById.get(userId);
-
+export const getUserFromToken = async (token: string) => {
+  const repo = await getRepository();
+  const userId = await repo.findUserIdByToken(token);
+  if (!userId) return undefined;
+  const user = await repo.findUserById(userId);
   return user ? toPublicUser(user) : undefined;
 };
